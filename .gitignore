@@ -1,0 +1,26 @@
+# Frozen reference KB — never tracked or pushed
+reference_kb/
+
+# GlycanML reference clone
+GlycanML_ref/
+
+# Downloaded datasets (top-level cache only, not benchmark/data/ source code)
+/data/
+results/*.pth
+results/*.pt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.env
+*.egg
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store

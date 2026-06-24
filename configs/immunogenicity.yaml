@@ -1,0 +1,42 @@
+# Glycan Immunogenicity Benchmark — Configuration
+# Reference: GlycanML (Xu et al. 2024, arXiv:2405.16206)
+
+benchmark:
+  name: "Glycan Immunogenicity"
+  version: "1.0"
+  reference: "Xu et al. 2024, GlycanML: A Multi-Task and Multi-Structure Benchmark"
+  paper_url: "https://arxiv.org/pdf/2405.16206"
+  github_ref: "https://github.com/GlycanML/GlycanML"
+
+dataset:
+  url: "https://torchglycan.s3.us-east-2.amazonaws.com/downstream/glycan_immunogenicity.csv"
+  splits:
+    train: 1046
+    valid: 131
+    test:  143
+  task_type: "binary_classification"
+  label_col: "immunogenicity"
+
+model:
+  name: "SweetNet"
+  encoder: "pretrained SweetNet (glycowork, 1075 species classes)"
+  head: "MLP (128 → 64 → 1)"
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  max_epochs: 50
+  batch_size: 64
+  patience: 10
+  seed: 42
+
+metrics:
+  primary:
+    - AUROC   # area under ROC curve  (higher is better)
+    - AUPRC   # area under PR  curve  (higher is better)
+  secondary:
+    - Accuracy
+    - F1
+    - MCC
+
+output:
+  dir: "results/"
+  run_name: "sweetnet"
