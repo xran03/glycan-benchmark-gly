@@ -1,0 +1,19 @@
+Rank,Model,Source,AUROC,AUPRC,F1,MCC
+1,GCN,this benchmark,0.9876,0.9194,0.8,0.7835
+2,LSTM,this benchmark,0.9868,0.9238,0.8,0.768
+3,MPNN,this benchmark,0.9836,0.877,0.8293,0.8015
+4,GIN,this benchmark,0.9808,0.8655,0.8293,0.8015
+5,SweetNet,this benchmark,0.9792,0.8935,0.8333,0.8166
+6,CNN,this benchmark,0.9764,0.8818,0.6667,0.6804
+7,ResNet,this benchmark,0.9544,0.7994,0.5517,0.5602
+8,GAT,this benchmark,0.9452,0.8507,0.5185,0.5631
+9,MPNN,GlycanML (paper),0.785,0.684,,
+10,GIN,GlycanML (paper),0.778,0.677,,
+11,BERT,GlycanML (paper),0.77,0.671,,
+12,GAT,GlycanML (paper),0.762,0.66,,
+13,RGCN,GlycanML (paper),0.758,0.655,,
+14,ResNet,GlycanML (paper),0.756,0.654,,
+15,CompGCN,GlycanML (paper),0.752,0.649,,
+16,GCN,GlycanML (paper),0.749,0.645,,
+17,CNN,GlycanML (paper),0.741,0.639,,
+18,LSTM,GlycanML (paper),0.728,0.621,,

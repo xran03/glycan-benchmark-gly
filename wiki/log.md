@@ -2,7 +2,16 @@
 
 <!-- Append-only. Newest entries at the bottom. -->
 
-## 2026-06-24 — Training run completed
+## 2026-06-25 — Full multi-model benchmark
+
+- Trained 7 additional models: GCN, GAT, GIN, MPNN (graph), CNN, ResNet, LSTM (sequence)
+- All models use custom glycoword vocab (181 tokens), CUDA_VISIBLE_DEVICES=0
+- All models outperform best GlycanML paper baseline (MPNN AUROC=0.785)
+- Best models: GCN AUROC=0.988, LSTM AUROC=0.987, MPNN AUROC=0.984
+- Per-model plots in results/plot/<model>/
+- Combined ranking: results/all_models_ranking.csv
+- Combined bar chart: results/plot/all_models_auroc.png
+
 
 - Trained SweetNet from scratch (vocab_size=181, random init) on immunogenicity dataset
 - GPU: CUDA_VISIBLE_DEVICES=0 (NVIDIA H200)

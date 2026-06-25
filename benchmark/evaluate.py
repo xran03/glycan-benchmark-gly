@@ -64,7 +64,10 @@ def compute_metrics(
     }
 
 
-def rank_against_baselines(metrics: dict[str, float]) -> pd.DataFrame:
+def rank_against_baselines(
+    metrics: dict[str, float],
+    model_label: str = "SweetNet (ours)",
+) -> pd.DataFrame:
     """
     Return a DataFrame that places our model alongside GlycanML baselines,
     sorted by AUROC descending.
@@ -74,7 +77,7 @@ def rank_against_baselines(metrics: dict[str, float]) -> pd.DataFrame:
         rows.append({"Model": model, "Source": "GlycanML (paper)", **vals})
 
     rows.append({
-        "Model":  "SweetNet (ours)",
+        "Model":  model_label,
         "Source": "this benchmark",
         "AUROC":  metrics.get("AUROC", float("nan")),
         "AUPRC":  metrics.get("AUPRC", float("nan")),
@@ -117,7 +120,7 @@ def _build_summary(
     ranking_df: pd.DataFrame,
     run_name: str,
 ) -> str:
-    our_row = ranking_df[ranking_df["Model"] == "SweetNet (ours)"]
+    our_row = ranking_df[ranking_df["Source"] == "this benchmark"]
     rank = our_row.index[0] if len(our_row) else "?"
     total = len(ranking_df)
 
