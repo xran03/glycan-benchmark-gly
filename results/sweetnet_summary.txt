@@ -1,0 +1,32 @@
+============================================================
+GLYCAN IMMUNOGENICITY BENCHMARK — RESULTS
+Run: sweetnet
+============================================================
+
+OUR MODEL (SweetNet fine-tuned)
+  AUROC  : 0.974
+  AUPRC  : 0.8132
+  F1     : 0.7222
+  MCC    : 0.689
+
+RANKING vs GlycanML paper baselines: #1 / 11
+  vs best paper model: +0.1890 AUROC
+
+FULL RANKING
+------------------------------------------------------------
+                Model            Source  AUROC   AUPRC
+Rank                                                  
+1     SweetNet (ours)    this benchmark  0.974  0.8132
+2                MPNN  GlycanML (paper)  0.785  0.6840
+3                 GIN  GlycanML (paper)  0.778  0.6770
+4                BERT  GlycanML (paper)  0.770  0.6710
+5                 GAT  GlycanML (paper)  0.762  0.6600
+6                RGCN  GlycanML (paper)  0.758  0.6550
+7              ResNet  GlycanML (paper)  0.756  0.6540
+8             CompGCN  GlycanML (paper)  0.752  0.6490
+9                 GCN  GlycanML (paper)  0.749  0.6450
+10                CNN  GlycanML (paper)  0.741  0.6390
+11               LSTM  GlycanML (paper)  0.728  0.6210
+
+Reference: Xu et al. 2024, arXiv:2405.16206
+Dataset  : GlycanML immunogenicity (Train 1046 / Valid 131 / Test 143)

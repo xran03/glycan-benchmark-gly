@@ -19,8 +19,12 @@ Examples
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
+
+# Pin to GPU 0 — must be set before any torch import
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
 
 # Allow running from project root
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

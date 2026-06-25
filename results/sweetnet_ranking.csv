@@ -1,0 +1,12 @@
+Rank,Model,Source,AUROC,AUPRC
+1,SweetNet (ours),this benchmark,0.974,0.8132
+2,MPNN,GlycanML (paper),0.785,0.684
+3,GIN,GlycanML (paper),0.778,0.677
+4,BERT,GlycanML (paper),0.77,0.671
+5,GAT,GlycanML (paper),0.762,0.66
+6,RGCN,GlycanML (paper),0.758,0.655
+7,ResNet,GlycanML (paper),0.756,0.654
+8,CompGCN,GlycanML (paper),0.752,0.649
+9,GCN,GlycanML (paper),0.749,0.645
+10,CNN,GlycanML (paper),0.741,0.639
+11,LSTM,GlycanML (paper),0.728,0.621

@@ -1,98 +1,77 @@
 """
 SweetNet-based binary classifier for glycan immunogenicity.
 
-Uses glycowork's SweetNet GNN (pretrained on 1075 species classes) as a
-frozen feature extractor, then fine-tunes a small MLP head for binary
-immunogenicity classification.
+Trains a full SweetNet GNN from scratch on the immunogenicity dataset.
+No pretrained weights required — end-to-end training from random initialization.
+
+Architecture: glycowork SweetNet (GraphConv × 3 → global pool → MLP → 1 output)
+Loss        : BCEWithLogitsLoss with pos_weight for class imbalance
+Optimizer   : Adam with cosine annealing LR schedule
 """
 
 import logging
+import os
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
+from torch.optim.lr_scheduler import CosineAnnealingLR
+
 from glycowork.ml.models import prep_model
-from glycowork.ml.inference import glycans_to_emb
-from glycowork.glycan_data.loader import lib
+from glycowork.ml.processing import dataset_to_dataloader
 
 logger = logging.getLogger(__name__)
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-class _MLPHead(nn.Module):
-    def __init__(self, in_dim: int = 128, hidden: int = 64):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(in_dim, hidden),
-            nn.BatchNorm1d(hidden),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(hidden, 1),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.net(x).squeeze(-1)
-
-
 class SweetNetClassifier:
     """
-    Glycan immunogenicity classifier backed by a pretrained SweetNet encoder.
+    End-to-end SweetNet binary classifier for glycan immunogenicity.
 
-    Steps:
-      1. Encode glycans → 128-d embeddings (SweetNet, frozen)
-      2. Fine-tune a small MLP head on the immunogenicity labels
-      3. Predict probabilities for evaluation
+    Trains the full GNN from random init — no HuggingFace download needed.
     """
 
     def __init__(
         self,
-        lr: float = 1e-3,
+        vocab: dict[str, int],
+        lr: float = 5e-4,
         weight_decay: float = 1e-4,
         max_epochs: int = 50,
         batch_size: int = 64,
         patience: int = 10,
         seed: int = 42,
+        hidden_dim: int = 128,
     ):
+        self.vocab = vocab
         self.lr = lr
         self.weight_decay = weight_decay
         self.max_epochs = max_epochs
         self.batch_size = batch_size
         self.patience = patience
         self.seed = seed
+        self.hidden_dim = hidden_dim
 
         torch.manual_seed(seed)
         np.random.seed(seed)
 
-        self._encoder: nn.Module | None = None
-        self._head: _MLPHead | None = None
+        self._model: nn.Module | None = None
 
     # ------------------------------------------------------------------ #
-    # Internal helpers                                                     #
-    # ------------------------------------------------------------------ #
 
-    def _load_encoder(self):
-        if self._encoder is None:
-            logger.info("Loading pretrained SweetNet encoder …")
-            self._encoder = prep_model("SweetNet", num_classes=1075, trained=True)
-            self._encoder.eval()
-            for p in self._encoder.parameters():
-                p.requires_grad_(False)
-            self._encoder = self._encoder.to(DEVICE)
-
-    def _encode(self, glycans: list[str]) -> torch.Tensor:
-        """Return (N, 128) float tensor of frozen SweetNet embeddings."""
-        self._load_encoder()
-        emb_df: pd.DataFrame = glycans_to_emb(
-            glycans, self._encoder, libr=lib, batch_size=self.batch_size, rep=True
+    def _make_loader(self, df: pd.DataFrame, shuffle: bool) -> torch.utils.data.DataLoader:
+        """Build a glycowork DataLoader from a glycan/label DataFrame."""
+        return dataset_to_dataloader(
+            df["glycan"].tolist(),
+            df["label"].tolist(),
+            libr=self.vocab,
+            batch_size=self.batch_size,
+            label_type=torch.float,
+            shuffle=shuffle,
         )
-        return torch.tensor(emb_df.values, dtype=torch.float32)
 
-    # ------------------------------------------------------------------ #
-    # Public API                                                           #
     # ------------------------------------------------------------------ #
 
     def fit(
@@ -101,99 +80,129 @@ class SweetNetClassifier:
         valid_df: pd.DataFrame,
     ) -> dict[str, list[float]]:
         """
-        Fine-tune the MLP head.
-
-        Args:
-            train_df: DataFrame with columns ['glycan', 'label']
-            valid_df: DataFrame with columns ['glycan', 'label']
+        Train SweetNet end-to-end for binary immunogenicity classification.
 
         Returns:
             history dict with 'train_loss' and 'val_loss' per epoch.
         """
-        X_tr = self._encode(train_df["glycan"].tolist())
-        y_tr = torch.tensor(train_df["label"].values, dtype=torch.float32)
-        X_va = self._encode(valid_df["glycan"].tolist())
-        y_va = torch.tensor(valid_df["label"].values, dtype=torch.float32)
-
-        self._head = _MLPHead(in_dim=X_tr.shape[1]).to(DEVICE)
-        optimizer = torch.optim.Adam(
-            self._head.parameters(), lr=self.lr, weight_decay=self.weight_decay
-        )
+        logger.info("Building SweetNet (num_classes=1, random init) on %s", DEVICE)
+        self._model = prep_model(
+            "SweetNet", num_classes=1, libr=self.vocab, trained=False, hidden_dim=self.hidden_dim
+        ).to(DEVICE)
 
         # Class-imbalance weighting
-        pos_weight = torch.tensor(
-            [(y_tr == 0).sum() / max((y_tr == 1).sum(), 1)], dtype=torch.float32
-        ).to(DEVICE)
+        pos_count = train_df["label"].sum()
+        neg_count = len(train_df) - pos_count
+        pos_weight = torch.tensor([neg_count / max(pos_count, 1)], dtype=torch.float32).to(DEVICE)
         criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
-        loader = DataLoader(
-            TensorDataset(X_tr, y_tr), batch_size=self.batch_size, shuffle=True
+        optimizer = torch.optim.Adam(
+            self._model.parameters(), lr=self.lr, weight_decay=self.weight_decay
         )
+        scheduler = CosineAnnealingLR(optimizer, T_max=self.max_epochs)
+
+        train_loader = self._make_loader(train_df, shuffle=True)
+        valid_loader = self._make_loader(valid_df, shuffle=False)
 
         history: dict[str, list[float]] = {"train_loss": [], "val_loss": []}
         best_val, wait, best_state = float("inf"), 0, None
 
         for epoch in range(1, self.max_epochs + 1):
-            # ----- train -----
-            self._head.train()
+            # ---- train ----
+            self._model.train()
             train_loss = 0.0
-            for xb, yb in loader:
-                xb, yb = xb.to(DEVICE), yb.to(DEVICE)
+            n_tr = 0
+            for data in train_loader:
+                x, y, edge_index, batch = (
+                    data.labels.to(DEVICE),
+                    data.y.to(DEVICE),
+                    data.edge_index.to(DEVICE),
+                    data.batch.to(DEVICE),
+                )
                 optimizer.zero_grad()
-                loss = criterion(self._head(xb), yb)
+                pred = self._model(x, edge_index, batch)
+                loss = criterion(pred, y)
                 loss.backward()
                 optimizer.step()
-                train_loss += loss.item() * len(xb)
-            train_loss /= len(X_tr)
+                train_loss += loss.item() * len(y)
+                n_tr += len(y)
+            train_loss /= max(n_tr, 1)
+            scheduler.step()
 
-            # ----- validate -----
-            self._head.eval()
+            # ---- validate ----
+            self._model.eval()
+            val_loss = 0.0
+            n_va = 0
             with torch.no_grad():
-                val_loss = criterion(
-                    self._head(X_va.to(DEVICE)), y_va.to(DEVICE)
-                ).item()
+                for data in valid_loader:
+                    x, y, edge_index, batch = (
+                        data.labels.to(DEVICE),
+                        data.y.to(DEVICE),
+                        data.edge_index.to(DEVICE),
+                        data.batch.to(DEVICE),
+                    )
+                    pred = self._model(x, edge_index, batch)
+                    val_loss += criterion(pred, y).item() * len(y)
+                    n_va += len(y)
+            val_loss /= max(n_va, 1)
 
             history["train_loss"].append(train_loss)
             history["val_loss"].append(val_loss)
 
-            if epoch % 10 == 0 or epoch == 1:
+            if epoch % 5 == 0 or epoch == 1:
                 logger.info(
-                    "Epoch %3d/%d  train_loss=%.4f  val_loss=%.4f",
+                    "Epoch %3d/%d  train=%.4f  val=%.4f  lr=%.2e",
                     epoch, self.max_epochs, train_loss, val_loss,
+                    scheduler.get_last_lr()[0],
                 )
 
             # Early stopping
             if val_loss < best_val - 1e-4:
                 best_val, wait = val_loss, 0
-                best_state = {k: v.clone() for k, v in self._head.state_dict().items()}
+                best_state = {k: v.clone() for k, v in self._model.state_dict().items()}
             else:
                 wait += 1
                 if wait >= self.patience:
-                    logger.info("Early stopping at epoch %d", epoch)
+                    logger.info("Early stopping at epoch %d (best val=%.4f)", epoch, best_val)
                     break
 
         if best_state:
-            self._head.load_state_dict(best_state)
+            self._model.load_state_dict(best_state)
         logger.info("Training complete. Best val_loss=%.4f", best_val)
         return history
 
     def predict_proba(self, glycans: list[str]) -> np.ndarray:
         """Return predicted positive-class probabilities (N,)."""
-        if self._head is None:
+        if self._model is None:
             raise RuntimeError("Call fit() before predict_proba()")
-        X = self._encode(glycans).to(DEVICE)
-        self._head.eval()
+        loader = dataset_to_dataloader(
+            glycans, [0.0] * len(glycans),
+            libr=self.vocab, batch_size=self.batch_size,
+            label_type=torch.float, shuffle=False,
+        )
+        self._model.eval()
+        preds = []
         with torch.no_grad():
-            logits = self._head(X)
-        return torch.sigmoid(logits).cpu().numpy()
+            for data in loader:
+                x, _, edge_index, batch = (
+                    data.labels.to(DEVICE),
+                    data.y,
+                    data.edge_index.to(DEVICE),
+                    data.batch.to(DEVICE),
+                )
+                logits = self._model(x, edge_index, batch)
+                preds.extend(torch.sigmoid(logits).cpu().numpy())
+        return np.array(preds)
 
     def save(self, path: Path | str) -> None:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        torch.save(self._head.state_dict(), path)
-        logger.info("Head weights saved to %s", path)
+        torch.save(self._model.state_dict(), path)
+        logger.info("Model weights saved to %s", path)
 
-    def load(self, path: Path | str, in_dim: int = 128) -> None:
-        self._head = _MLPHead(in_dim=in_dim).to(DEVICE)
-        self._head.load_state_dict(torch.load(path, map_location=DEVICE))
-        logger.info("Head weights loaded from %s", path)
+    def load(self, path: Path | str) -> None:
+        self._model = prep_model(
+            "SweetNet", num_classes=1, libr=self.vocab, trained=False, hidden_dim=self.hidden_dim
+        ).to(DEVICE)
+        self._model.load_state_dict(torch.load(path, map_location=DEVICE))
+        logger.info("Model weights loaded from %s", path)

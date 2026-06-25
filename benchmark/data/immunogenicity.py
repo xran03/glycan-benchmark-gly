@@ -52,6 +52,26 @@ def download_dataset(dest_dir: Path = CACHE_DIR) -> Path:
     return dest
 
 
+def build_vocab(glycans: list[str]) -> dict[str, int]:
+    """
+    Build a token-to-index vocabulary from a list of IUPAC-condensed glycan strings.
+
+    Uses libr=None so glycowork tokenises without requiring a pre-built library,
+    collecting all unique node tokens (monosaccharide + linkage labels).
+    """
+    from glycowork.motif.graph import glycan_to_nxGraph
+
+    vocab: set[str] = set()
+    for g in glycans:
+        try:
+            nx = glycan_to_nxGraph(g, libr=None)
+            for _, data in nx.nodes(data=True):
+                vocab.add(data["string_labels"])
+        except Exception:
+            pass
+    return {tok: idx for idx, tok in enumerate(sorted(vocab))}
+
+
 class ImmunogenicityDataset:
     """
     Wrapper around the GlycanML immunogenicity CSV.
@@ -60,17 +80,22 @@ class ImmunogenicityDataset:
         glycan      – IUPAC-condensed string
         label       – int (0 / 1)
         split       – 'train' | 'valid' | 'test'
+
+    Attributes:
+        vocab       – dict[str, int] built from all glycans in this dataset
     """
 
     def __init__(self, csv_path: Path | None = None):
         if csv_path is None:
             csv_path = download_dataset()
         self.df = self._parse(csv_path)
+        logger.info("Building dataset vocabulary …")
+        self.vocab = build_vocab(self.df["glycan"].tolist())
+        logger.info("Vocabulary size: %d tokens", len(self.vocab))
 
     @staticmethod
     def _parse(path: Path) -> pd.DataFrame:
         raw = pd.read_csv(path)
-        # Determine split column: one of {train, valid, test} is True per row
         split_cols = [c for c in raw.columns if c in {"train", "valid", "test"}]
         if not split_cols:
             raise ValueError(f"No split columns found. Columns: {raw.columns.tolist()}")
@@ -85,11 +110,8 @@ class ImmunogenicityDataset:
             return "train"
 
         raw["split"] = raw.apply(resolve_split, axis=1)
-
-        # Normalise label: immunogenicity column → int
         label_col = "immunogenicity"
         raw[label_col] = pd.to_numeric(raw[label_col], errors="coerce").fillna(0).astype(int)
-
         return raw[["glycan", label_col, "split"]].rename(columns={label_col: "label"})
 
     def split(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -105,6 +127,16 @@ class ImmunogenicityDataset:
         return "\n".join(lines)
 
 
-def load_splits(csv_path: Path | None = None) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Convenience function — returns (train_df, valid_df, test_df)."""
-    return ImmunogenicityDataset(csv_path).split()
+def load_splits(
+    csv_path: Path | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, int]]:
+    """
+    Convenience function.
+
+    Returns:
+        (train_df, valid_df, test_df, vocab)
+    """
+    ds = ImmunogenicityDataset(csv_path)
+    train_df, valid_df, test_df = ds.split()
+    return train_df, valid_df, test_df, ds.vocab
+

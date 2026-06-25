@@ -12,6 +12,7 @@ Usage (CLI):
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
@@ -71,10 +72,11 @@ class ImmunogenicityBenchmark:
         dataset = ImmunogenicityDataset(self.csv_path)
         logger.info(dataset.stats())
         train_df, valid_df, test_df = dataset.split()
+        vocab = dataset.vocab
 
         # 2 + 3. Train
-        logger.info("Training SweetNet classifier …")
-        model = SweetNetClassifier(**self.model_kwargs)
+        logger.info("Training SweetNet classifier (vocab_size=%d) …", len(vocab))
+        model = SweetNetClassifier(vocab=vocab, **self.model_kwargs)
         history = model.fit(train_df, valid_df)
 
         # 4. Evaluate on test
@@ -86,11 +88,27 @@ class ImmunogenicityBenchmark:
         # 5. Rank
         ranking_df = rank_against_baselines(metrics)
 
-        # 6. Save
+        # 6. Save metrics, arrays, history
         save_results(metrics, ranking_df, self.output_dir, run_name=self.run_name)
+        np.savez(
+            self.output_dir / f"{self.run_name}_arrays.npz",
+            y_true=y_true,
+            y_prob=y_prob,
+        )
+        (self.output_dir / f"{self.run_name}_history.json").write_text(
+            json.dumps(history, indent=2)
+        )
 
-        # Optionally save model weights
-        weights_path = self.output_dir / f"{self.run_name}_head.pt"
+        # 7. Generate plots
+        plot_dir = self.output_dir / "plot"
+        try:
+            from results.plot.plot_results import plot_all
+            plot_all(y_true, y_prob, history, metrics, output_dir=plot_dir)
+        except Exception as exc:
+            logger.warning("Plotting failed (non-fatal): %s", exc)
+
+        # 8. Save full model weights
+        weights_path = self.output_dir / f"{self.run_name}_model.pt"
         model.save(weights_path)
 
         return metrics
