@@ -1,0 +1,16 @@
+{
+  "model": "GAT",
+  "seed": 42,
+  "best_valid_epoch": 50,
+  "AUROC": 0.9312000274658203,
+  "AUPRC": 0.6652445793151855,
+  "valid": {
+    "auroc [immunogenicity]": 0.9021493196487427,
+    "auprc [immunogenicity]": 0.5615723133087158
+  },
+  "test": {
+    "auroc [immunogenicity]": 0.9312000274658203,
+    "auprc [immunogenicity]": 0.6652445793151855
+  },
+  "training_time_sec": 13.088743209838867
+}

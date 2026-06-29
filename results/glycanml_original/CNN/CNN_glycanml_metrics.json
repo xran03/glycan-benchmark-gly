@@ -1,0 +1,16 @@
+{
+  "model": "CNN",
+  "seed": 42,
+  "best_valid_epoch": 30,
+  "AUROC": 0.967199981212616,
+  "AUPRC": 0.7111828923225403,
+  "valid": {
+    "auroc [immunogenicity]": 0.8908371329307556,
+    "auprc [immunogenicity]": 0.6723388433456421
+  },
+  "test": {
+    "auroc [immunogenicity]": 0.967199981212616,
+    "auprc [immunogenicity]": 0.7111828923225403
+  },
+  "training_time_sec": 91.29978132247925
+}

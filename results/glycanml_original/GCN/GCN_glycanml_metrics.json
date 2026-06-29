@@ -1,0 +1,20 @@
+{
+  "model": "GCN",
+  "seed": 42,
+  "best_valid_epoch": 40,
+  "AUROC": 0.8615999817848206,
+  "AUPRC": 0.6422640085220337,
+  "valid": {
+    "auroc [immunogenicity]": 0.8880090713500977,
+    "auprc [immunogenicity]": 0.581684947013855,
+    "auroc [average]": 0.8880090713500977,
+    "auprc [average]": 0.581684947013855
+  },
+  "test": {
+    "auroc [immunogenicity]": 0.8615999817848206,
+    "auprc [immunogenicity]": 0.6422640085220337,
+    "auroc [average]": 0.8615999817848206,
+    "auprc [average]": 0.6422640085220337
+  },
+  "training_time_sec": 22.843422174453735
+}

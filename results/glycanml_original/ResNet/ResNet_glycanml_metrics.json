@@ -1,0 +1,6 @@
+{
+  "model": "ResNet",
+  "AUROC": 0.35760000348091125,
+  "AUPRC": 0.12852853536605835,
+  "best_valid_epoch": 10
+}

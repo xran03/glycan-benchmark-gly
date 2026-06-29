@@ -1,0 +1,16 @@
+{
+  "model": "GIN",
+  "seed": 42,
+  "best_valid_epoch": 30,
+  "AUROC": 0.9575999975204468,
+  "AUPRC": 0.7022103071212769,
+  "valid": {
+    "auroc [immunogenicity]": 0.9406108856201172,
+    "auprc [immunogenicity]": 0.7628932595252991
+  },
+  "test": {
+    "auroc [immunogenicity]": 0.9575999975204468,
+    "auprc [immunogenicity]": 0.7022103071212769
+  },
+  "training_time_sec": 13.223670482635498
+}

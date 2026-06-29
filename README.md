@@ -1,17 +1,48 @@
 # glycan-benchmark-gly
 
-Glycan **immunogenicity** benchmark pipeline, evaluated against the
-[GlycanML](https://github.com/GlycanML/GlycanML) public leaderboard
-(Xu et al. 2024, [arXiv:2405.16206](https://arxiv.org/pdf/2405.16206)).
+Glycan **immunogenicity** benchmark pipeline.  
+Reference: Xu et al. 2024, [GlycanML](https://arxiv.org/pdf/2405.16206) (arXiv:2405.16206).
 
 ## Task
 
 Binary classification: given a glycan (IUPAC-condensed), predict immunogenicity (0/1).  
-Dataset: Train 1,046 | Valid 131 | Test 143 — downloaded automatically from the GlycanML S3 bucket.
+Dataset: Train 1,026 | Valid 149 | Test 145 — downloaded from the GlycanML S3 bucket.
 
-## Model
+## ⚠️ Important Note on Results
 
-**SweetNet** (glycowork ≥ 1.9.0) as a frozen graph-encoder → fine-tuned MLP head.
+Our results **cannot be directly compared** to the GlycanML paper baselines. Key differences:
+
+| Aspect | GlycanML paper | This benchmark |
+|--------|---------------|----------------|
+| Graph format | Edge features for linkages | glycowork v1.9 (linkages as nodes) |
+| Loss | Plain BCE, no class weighting | BCE + `pos_weight = neg/pos` |
+| Training | Fixed 50 epochs, batch=256 | Early stopping, batch=64 |
+| Vocab | Pre-built 211-token glycoword | Dataset-derived 181 tokens |
+
+We also reproduced the GlycanML paper models using their **original torchdrug-based code**
+(CPU-only, as torch 1.12 does not support H200/sm_90 CUDA). Results in `results/glycanml_original/`.
+
+### Three-way comparison (AUROC on test set)
+
+| Model  | Paper (reported) | GlycanML orig code (reproduced, CPU) | Our reimplementation |
+|--------|-----------------|--------------------------------------|----------------------|
+| GCN    | 0.749 | 0.862 | 0.988 |
+| GAT    | 0.762 | 0.931 | 0.945 |
+| GIN    | 0.778 | 0.958 | 0.981 |
+| MPNN   | 0.785 | 0.968 | 0.984 |
+| CNN    | 0.741 | 0.967 | 0.976 |
+| ResNet | 0.756 | 0.358* | 0.954 |
+| LSTM   | 0.728 | 0.982 | 0.987 |
+
+> *ResNet in GlycanML original code failed to train properly on this dataset/setup.  
+> See `results/glycanml_comparison.csv` for full details.
+
+**Why are all results higher than the paper?** The dataset URL is the same but the S3 bucket
+content appears to have changed since publication — the split sizes differ (Train 1026/1046,
+Valid 149/131, Test 145/143). The current dataset likely produces easier splits than what the
+paper evaluated on.
+
+## Models
 
 ## Quick start
 
