@@ -25,3 +25,4 @@ build/
 # OS
 .DS_Store
 results/GlycanGT/model.pt
+results/GlycanGT/model.pt

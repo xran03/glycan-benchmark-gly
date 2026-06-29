@@ -1,0 +1,26 @@
+============================================================
+GLYCAN IMMUNOGENICITY BENCHMARK — RESULTS
+Run: GlycanAA
+============================================================
+
+AUROC  : 0.9488
+AUPRC  : 0.6953
+Accuracy: 0.8897
+F1     : 0.5294
+MCC    : 0.4787
+
+RANKING vs GlycanML paper baselines: #7 / 10
+vs best paper model: +nan AUROC
+
+         Model                 Source   AUROC   AUPRC      F1     MCC
+Rank                                                                 
+1          GCN  our trained baselines  0.9876  0.9194  0.8000  0.7835
+2         LSTM  our trained baselines  0.9868  0.9238  0.8000  0.7680
+3         MPNN  our trained baselines  0.9836  0.8770  0.8293  0.8015
+4          GIN  our trained baselines  0.9808  0.8655  0.8293  0.8015
+5     SweetNet  our trained baselines  0.9792  0.8935  0.8333  0.8166
+6          CNN  our trained baselines  0.9764  0.8818  0.6667  0.6804
+7     GlycanAA  our trained baselines  0.9708  0.8026  0.5333  0.5226
+8       ResNet  our trained baselines  0.9544  0.7994  0.5517  0.5602
+9     GlycanAA         this benchmark  0.9488  0.6953     NaN     NaN
+10         GAT  our trained baselines  0.9452  0.8507  0.5185  0.5631

@@ -248,11 +248,7 @@ def main():
     if is_main:
         print(f"GlycanGT-{args.model_size}: {n_params:.2f}M params")
 
-    # pos_weight for imbalanced labels
-    pos = train_df['label'].sum()
-    neg = len(train_df) - pos
-    pos_weight = torch.tensor([neg / pos], dtype=torch.float32, device=device)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    criterion = nn.BCEWithLogitsLoss()
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr,
                                   weight_decay=0.01)

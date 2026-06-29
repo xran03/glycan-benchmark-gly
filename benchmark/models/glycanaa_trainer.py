@@ -105,8 +105,7 @@ class GlycanAATrainer:
 
         pos = float(train_df["label"].sum())
         neg = float(len(train_df) - pos)
-        pos_weight = torch.tensor([neg / max(pos, 1.0)], dtype=torch.float32, device=DEVICE)
-        criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+        criterion = nn.BCEWithLogitsLoss()
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         scheduler = CosineAnnealingLR(optimizer, T_max=self.max_epochs)

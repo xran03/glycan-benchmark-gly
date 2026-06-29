@@ -1,11 +1,11 @@
 Rank,Model,Source,AUROC,AUPRC,F1,MCC
-1,GCN,our trained baselines,0.9876,0.9194,0.8,0.7835
-2,LSTM,our trained baselines,0.9868,0.9238,0.8,0.768
-3,MPNN,our trained baselines,0.9836,0.877,0.8293,0.8015
-4,GIN,our trained baselines,0.9808,0.8655,0.8293,0.8015
-5,SweetNet,our trained baselines,0.9792,0.8935,0.8333,0.8166
-6,CNN,our trained baselines,0.9764,0.8818,0.6667,0.6804
-7,GlycanAA,our trained baselines,0.9708,0.8026,0.5333,0.5226
-8,ResNet,our trained baselines,0.9544,0.7994,0.5517,0.5602
-9,GlycanGT (supervised),this benchmark,0.9536,0.738,,
-10,GAT,our trained baselines,0.9452,0.8507,0.5185,0.5631
+1,LSTM,our trained baselines,0.9868,0.9258,0.8095,0.7786
+2,SweetNet,our trained baselines,0.9848,0.8646,0.7059,0.6818
+3,GIN,our trained baselines,0.984,0.8971,0.8889,0.8764
+4,MPNN,our trained baselines,0.9816,0.8327,0.8095,0.7786
+5,ResNet,our trained baselines,0.978,0.865,0.6875,0.6783
+6,GCN,our trained baselines,0.9776,0.8464,0.75,0.71
+7,CNN,our trained baselines,0.9756,0.8665,0.6286,0.5865
+8,GAT,our trained baselines,0.9644,0.8253,0.7917,0.767
+9,GlycanAA,our trained baselines,0.9488,0.6953,0.5294,0.4787
+10,GlycanGT (supervised),this benchmark,0.9344,0.6633,,

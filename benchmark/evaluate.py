@@ -44,18 +44,18 @@ GLYCANML_PAPER_BASELINES: dict[str, dict[str, float]] = {
 }
 
 # ---------------------------------------------------------------------------
-# Our trained baselines (same dataset/splits, GPU training on H200)
+# Our trained baselines (same dataset/splits, GPU H200, no pos_weight)
 # ---------------------------------------------------------------------------
 OUR_TRAINED_BASELINES: dict[str, dict[str, float]] = {
-    "GCN":      {"AUROC": 0.9876, "AUPRC": 0.9194, "F1": 0.8000, "MCC": 0.7835},
-    "LSTM":     {"AUROC": 0.9868, "AUPRC": 0.9238, "F1": 0.8000, "MCC": 0.7680},
-    "MPNN":     {"AUROC": 0.9836, "AUPRC": 0.8770, "F1": 0.8293, "MCC": 0.8015},
-    "GIN":      {"AUROC": 0.9808, "AUPRC": 0.8655, "F1": 0.8293, "MCC": 0.8015},
-    "SweetNet": {"AUROC": 0.9792, "AUPRC": 0.8935, "F1": 0.8333, "MCC": 0.8166},
-    "CNN":      {"AUROC": 0.9764, "AUPRC": 0.8818, "F1": 0.6667, "MCC": 0.6804},
-    "GlycanAA": {"AUROC": 0.9708, "AUPRC": 0.8026, "F1": 0.5333, "MCC": 0.5226},
-    "ResNet":   {"AUROC": 0.9544, "AUPRC": 0.7994, "F1": 0.5517, "MCC": 0.5602},
-    "GAT":      {"AUROC": 0.9452, "AUPRC": 0.8507, "F1": 0.5185, "MCC": 0.5631},
+    "GIN":      {"AUROC": 0.9840, "AUPRC": 0.8971, "F1": 0.8889, "MCC": 0.8764},
+    "LSTM":     {"AUROC": 0.9868, "AUPRC": 0.9258, "F1": 0.8095, "MCC": 0.7786},
+    "SweetNet": {"AUROC": 0.9848, "AUPRC": 0.8646, "F1": 0.7059, "MCC": 0.6818},
+    "MPNN":     {"AUROC": 0.9816, "AUPRC": 0.8327, "F1": 0.8095, "MCC": 0.7786},
+    "ResNet":   {"AUROC": 0.9780, "AUPRC": 0.8650, "F1": 0.6875, "MCC": 0.6783},
+    "GCN":      {"AUROC": 0.9776, "AUPRC": 0.8464, "F1": 0.7500, "MCC": 0.7100},
+    "CNN":      {"AUROC": 0.9756, "AUPRC": 0.8665, "F1": 0.6286, "MCC": 0.5865},
+    "GAT":      {"AUROC": 0.9644, "AUPRC": 0.8253, "F1": 0.7917, "MCC": 0.7670},
+    "GlycanAA": {"AUROC": 0.9488, "AUPRC": 0.6953, "F1": 0.5294, "MCC": 0.4787},
 }
 
 # Default: rank against our own trained results (competitive baseline)

@@ -1,12 +1,11 @@
-Rank,Model,Source,AUROC,AUPRC
-1,GIN,this benchmark,0.9808,0.8655
-2,MPNN,GlycanML (paper),0.785,0.684
-3,GIN,GlycanML (paper),0.778,0.677
-4,BERT,GlycanML (paper),0.77,0.671
-5,GAT,GlycanML (paper),0.762,0.66
-6,RGCN,GlycanML (paper),0.758,0.655
-7,ResNet,GlycanML (paper),0.756,0.654
-8,CompGCN,GlycanML (paper),0.752,0.649
-9,GCN,GlycanML (paper),0.749,0.645
-10,CNN,GlycanML (paper),0.741,0.639
-11,LSTM,GlycanML (paper),0.728,0.621
+Rank,Model,Source,AUROC,AUPRC,F1,MCC
+1,GCN,our trained baselines,0.9876,0.9194,0.8,0.7835
+2,LSTM,our trained baselines,0.9868,0.9238,0.8,0.768
+3,GIN,this benchmark,0.984,0.8971,,
+4,MPNN,our trained baselines,0.9836,0.877,0.8293,0.8015
+5,GIN,our trained baselines,0.9808,0.8655,0.8293,0.8015
+6,SweetNet,our trained baselines,0.9792,0.8935,0.8333,0.8166
+7,CNN,our trained baselines,0.9764,0.8818,0.6667,0.6804
+8,GlycanAA,our trained baselines,0.9708,0.8026,0.5333,0.5226
+9,ResNet,our trained baselines,0.9544,0.7994,0.5517,0.5602
+10,GAT,our trained baselines,0.9452,0.8507,0.5185,0.5631

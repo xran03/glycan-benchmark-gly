@@ -3,30 +3,29 @@ GLYCAN IMMUNOGENICITY BENCHMARK — RESULTS
 Run: MPNN
 ============================================================
 
-OUR MODEL (SweetNet fine-tuned)
-  AUROC  : 0.9836
-  AUPRC  : 0.877
-  F1     : 0.8293
-  MCC    : 0.8015
+MODEL: MPNN
+  AUROC  : 0.9816
+  AUPRC  : 0.8327
+  F1     : 0.8095
+  MCC    : 0.7786
 
-RANKING vs GlycanML paper baselines: #1 / 11
-  vs best paper model: +0.1986 AUROC
+RANKING vs our trained baselines: #4 / 10
+  vs best baseline: -0.0060 AUROC
 
 FULL RANKING
 ------------------------------------------------------------
-        Model            Source   AUROC  AUPRC
-Rank                                          
-1        MPNN    this benchmark  0.9836  0.877
-2        MPNN  GlycanML (paper)  0.7850  0.684
-3         GIN  GlycanML (paper)  0.7780  0.677
-4        BERT  GlycanML (paper)  0.7700  0.671
-5         GAT  GlycanML (paper)  0.7620  0.660
-6        RGCN  GlycanML (paper)  0.7580  0.655
-7      ResNet  GlycanML (paper)  0.7560  0.654
-8     CompGCN  GlycanML (paper)  0.7520  0.649
-9         GCN  GlycanML (paper)  0.7490  0.645
-10        CNN  GlycanML (paper)  0.7410  0.639
-11       LSTM  GlycanML (paper)  0.7280  0.621
+         Model                 Source   AUROC   AUPRC      F1     MCC
+Rank                                                                 
+1          GCN  our trained baselines  0.9876  0.9194  0.8000  0.7835
+2         LSTM  our trained baselines  0.9868  0.9238  0.8000  0.7680
+3         MPNN  our trained baselines  0.9836  0.8770  0.8293  0.8015
+4         MPNN         this benchmark  0.9816  0.8327     NaN     NaN
+5          GIN  our trained baselines  0.9808  0.8655  0.8293  0.8015
+6     SweetNet  our trained baselines  0.9792  0.8935  0.8333  0.8166
+7          CNN  our trained baselines  0.9764  0.8818  0.6667  0.6804
+8     GlycanAA  our trained baselines  0.9708  0.8026  0.5333  0.5226
+9       ResNet  our trained baselines  0.9544  0.7994  0.5517  0.5602
+10         GAT  our trained baselines  0.9452  0.8507  0.5185  0.5631
 
 Reference: Xu et al. 2024, arXiv:2405.16206
-Dataset  : GlycanML immunogenicity (Train 1046 / Valid 131 / Test 143)
+Dataset  : GlycanML immunogenicity (Train 1026 / Valid 149 / Test 145)
