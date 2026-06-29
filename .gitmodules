@@ -1,0 +1,6 @@
+[submodule "GlycanAA"]
+	path = GlycanAA
+	url = https://github.com/kasawa1234/GlycanAA.git
+[submodule "GlycanGT"]
+	path = GlycanGT
+	url = https://github.com/matsui-lab/GlycanGT.git
