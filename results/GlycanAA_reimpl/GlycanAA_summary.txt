@@ -1,0 +1,27 @@
+============================================================
+GLYCAN IMMUNOGENICITY BENCHMARK — RESULTS
+Run: GlycanAA
+============================================================
+
+AUROC  : 0.9708
+AUPRC  : 0.8026
+Accuracy: 0.9034
+F1     : 0.5333
+MCC    : 0.5226
+
+RANKING vs GlycanML paper baselines: #1 / 11
+vs best paper model: +0.1858 AUROC
+
+         Model            Source   AUROC   AUPRC
+Rank                                            
+1     GlycanAA    this benchmark  0.9708  0.8026
+2         MPNN  GlycanML (paper)  0.7850  0.6840
+3          GIN  GlycanML (paper)  0.7780  0.6770
+4         BERT  GlycanML (paper)  0.7700  0.6710
+5          GAT  GlycanML (paper)  0.7620  0.6600
+6         RGCN  GlycanML (paper)  0.7580  0.6550
+7       ResNet  GlycanML (paper)  0.7560  0.6540
+8      CompGCN  GlycanML (paper)  0.7520  0.6490
+9          GCN  GlycanML (paper)  0.7490  0.6450
+10         CNN  GlycanML (paper)  0.7410  0.6390
+11        LSTM  GlycanML (paper)  0.7280  0.6210
