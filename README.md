@@ -8,103 +8,138 @@ Reference: Xu et al. 2024, [GlycanML](https://arxiv.org/pdf/2405.16206) (arXiv:2
 Binary classification: given a glycan (IUPAC-condensed), predict immunogenicity (0/1).  
 Dataset: Train 1,026 | Valid 149 | Test 145 — downloaded from the GlycanML S3 bucket.
 
-## ⚠️ Important Note on Results
+## Hardware & Environment
 
-Our results **cannot be directly compared** to the GlycanML paper baselines. Key differences:
+All models were trained on **NVIDIA H200 GPU (143 GB VRAM)**:
+
+| Model group | Training setup |
+|-------------|---------------|
+| GCN, GAT, GIN, MPNN, CNN, ResNet, LSTM, SweetNet, GlycanAA | Single GPU — `CUDA_VISIBLE_DEVICES=0`, `py3` env (PyTorch 2.12.1+cu130) |
+| GlycanGT-large | **2-GPU DDP** — `CUDA_VISIBLE_DEVICES=0,2`, `torchrun --nproc_per_node=2`, same `py3` env |
+| GlycanML original code (reproduced) | **CPU only** — `tdrug` env (PyTorch 1.12+cu113, torchdrug 0.2.1 incompatible with H200/sm_90) |
+
+## Results (GPU, no pos_weight)
+
+| Rank | Model | AUROC | AUPRC | F1 | MCC |
+|------|-------|-------|-------|-----|-----|
+| 1 | LSTM | **0.9868** | 0.9258 | 0.8095 | 0.7786 |
+| 2 | SweetNet | 0.9848 | 0.8646 | 0.7059 | 0.6818 |
+| 3 | GIN | 0.9840 | 0.8971 | 0.8889 | 0.8764 |
+| 4 | MPNN | 0.9816 | 0.8327 | 0.8095 | 0.7786 |
+| 5 | ResNet | 0.9780 | 0.8650 | 0.6875 | 0.6783 |
+| 6 | GCN | 0.9776 | 0.8464 | 0.7500 | 0.7100 |
+| 7 | CNN | 0.9756 | 0.8665 | 0.6286 | 0.5865 |
+| 8 | GAT | 0.9644 | 0.8253 | 0.7917 | 0.7670 |
+| 9 | GlycanAA | 0.9488 | 0.6953 | 0.5294 | 0.4787 |
+| 10 | GlycanGT-large (supervised) | 0.9344 | 0.6633 | 0.5854 | 0.5173 |
+
+> GlycanAA: heterogeneous all-atom GNN, torchdrug-free reimplementation (PyG RGCNConv).  
+> GlycanGT: TokenGT architecture (88M params), trained **from scratch** without pretrained weights
+> (HuggingFace `Akikitani295/GlycanGT` blocked by corporate firewall).
+
+## ⚠️ Why our results are higher than the paper
+
+**These results cannot be directly compared to the GlycanML paper baselines.** There are two root causes:
+
+### 1. Dataset changed on S3 (main cause)
+
+| | Paper (2024) | Current S3 |
+|--|-------------|-----------|
+| Train | 1,046 | 1,026 |
+| Valid | 131 | 149 |
+| Test | 143 | 145 |
+| Train positive rate | unknown | **58.8%** |
+| Test positive rate | unknown | **13.8%** |
+
+The current S3 split places 60% of positives in training but only 14% in the test set (20 positives out of 145). With so few positive–negative pairs in the test set (20×125 = 2,500), AUROC is much easier to inflate than with a balanced test set. **Even the original GlycanML torchdrug code reproduces this inflation on the current data** (GCN: 0.862 vs paper 0.749).
+
+### 2. Implementation differences
 
 | Aspect | GlycanML paper | This benchmark |
 |--------|---------------|----------------|
 | Graph format | Edge features for linkages | glycowork v1.9 (linkages as nodes) |
-| Loss | Plain BCE, no class weighting | BCE + `pos_weight = neg/pos` |
-| Training | Fixed 50 epochs, batch=256 | Early stopping, batch=64 |
-| Vocab | Pre-built 211-token glycoword | Dataset-derived 181 tokens |
-
-We also reproduced the GlycanML paper models using their **original torchdrug-based code**
-(CPU-only, as torch 1.12 does not support H200/sm_90 CUDA). Results in `results/glycanml_original/`.
+| Loss | Plain BCE, no weighting | Plain BCE, no weighting ✓ (fixed) |
+| Vocab | Pre-built 143-unit monosaccharide | Dataset-derived 181 tokens |
+| Training | Fixed 50 epochs, batch=256 | Early stopping (patience=10), variable batch |
 
 ### Three-way comparison (AUROC on test set)
 
-| Model  | Paper (reported) | GlycanML orig code (reproduced, CPU) | Our reimplementation |
-|--------|-----------------|--------------------------------------|----------------------|
-| GCN    | 0.749 | 0.862 | 0.988 |
-| GAT    | 0.762 | 0.931 | 0.945 |
-| GIN    | 0.778 | 0.958 | 0.981 |
-| MPNN   | 0.785 | 0.968 | 0.984 |
-| CNN    | 0.741 | 0.967 | 0.976 |
-| ResNet | 0.756 | 0.358* | 0.954 |
-| LSTM   | 0.728 | 0.982 | 0.987 |
+| Model | Paper (reported) | GlycanML orig code (CPU, reproduced) | Our GPU impl |
+|-------|-----------------|--------------------------------------|-------------|
+| GCN | 0.749 | 0.862 | 0.9776 |
+| GAT | 0.762 | 0.931 | 0.9644 |
+| GIN | 0.778 | 0.958 | 0.9840 |
+| MPNN | 0.785 | 0.968 | 0.9816 |
+| CNN | 0.741 | 0.967 | 0.9756 |
+| ResNet | 0.756 | 0.358* | 0.9780 |
+| LSTM | 0.728 | 0.982 | 0.9868 |
 
-> *ResNet in GlycanML original code failed to train properly on this dataset/setup.  
-> See `results/glycanml_comparison.csv` for full details.
-
-**Why are all results higher than the paper?** The dataset URL is the same but the S3 bucket
-content appears to have changed since publication — the split sizes differ (Train 1026/1046,
-Valid 149/131, Test 145/143). The current dataset likely produces easier splits than what the
-paper evaluated on.
+> *ResNet in GlycanML original code failed to train properly (AUROC=0.358).  
+> See `results/glycanml_comparison.csv` for details.
 
 ## Models
 
-## Quick start
+| Model | Type | Framework | Notes |
+|-------|------|-----------|-------|
+| SweetNet | Graph GNN | glycowork | Official glycan GNN |
+| GCN / GAT / GIN / MPNN | Graph GNN | PyG | Standard graph networks |
+| CNN / ResNet / LSTM | Sequence | PyTorch | Token-based sequence models |
+| GlycanAA | Heterogeneous GNN | PyG (torchdrug-free) | All-atom, 3-stream RGCN |
+| GlycanGT-large | Graph Transformer | PyTorch DDP | TokenGT 88M params, no pretraining |
+
+## Quick Start
 
 ```bash
-# 1. Create / activate environment
-conda activate py3
+# Check GPU availability first
+nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv,noheader
 
-# 2. Install dependencies
-pip install -r requirements.txt
+# 8 baseline models (single GPU)
+CUDA_VISIBLE_DEVICES=0 python scripts/run_all_models.py --seed 42
 
-# 3. Run the full benchmark (downloads dataset automatically)
-python scripts/run_benchmark.py
+# GlycanAA (single GPU)
+CUDA_VISIBLE_DEVICES=0 python scripts/run_glycanaa.py --output-dir results/GlycanAA --epochs 50
 
-# 4. Results are written to results/
-#    sweetnet_metrics.json   — AUROC, AUPRC, F1, MCC
-#    sweetnet_ranking.csv    — ranked vs GlycanML baselines
-#    sweetnet_summary.txt    — human-readable report
+# GlycanGT large (2-GPU DDP)
+CUDA_VISIBLE_DEVICES=0,2 torchrun --nproc_per_node=2 --master_port=29500 \
+    scripts/run_glycangt.py --model-size large --epochs 100 --batch-size 32 --lr 5e-5
 ```
 
-## Options
+## Environments
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--output-dir` | `results/` | Where to write outputs |
-| `--max-epochs` | `50` | Training epochs (early-stopped) |
-| `--lr` | `1e-3` | Learning rate |
-| `--seed` | `42` | Random seed |
-| `--csv-path` | *(auto-download)* | Local dataset CSV |
-| `--config` | `configs/immunogenicity.yaml` | YAML config |
-
-## GlycanML baselines
-
-| Model    | AUROC | AUPRC |
-|----------|-------|-------|
-| MPNN     | 0.785 | 0.684 |
-| GIN      | 0.778 | 0.677 |
-| BERT     | 0.770 | 0.671 |
-| GAT      | 0.762 | 0.660 |
-| GCN      | 0.749 | 0.645 |
-| CNN      | 0.741 | 0.639 |
-| LSTM     | 0.728 | 0.621 |
+| Env | Python | PyTorch | CUDA | Use |
+|-----|--------|---------|------|-----|
+| `py3` | 3.11 | 2.12.1+cu130 | 13.0 | **All GPU training** |
+| `tdrug` | 3.9 | 1.12.0+cu113 | — | GlycanML orig code (CPU only on H200) |
 
 ## Repository layout
 
 ```
 benchmark_gly/
 ├── benchmark/
-│   ├── data/immunogenicity.py      # dataset download + splits
-│   ├── models/sweetnet_classifier.py  # SweetNet encoder + MLP head
-│   ├── evaluate.py                 # AUROC / AUPRC + baseline ranking
-│   └── pipeline.py                 # end-to-end orchestrator
-├── configs/immunogenicity.yaml     # hyperparameters
-├── scripts/run_benchmark.py        # CLI entry point
-├── results/                        # output directory (gitignored for models)
-├── wiki/                           # KB wiki (AGENTS.md schema)
-│   ├── index.md
-│   ├── log.md
-│   ├── map.md
-│   ├── sources/
-│   ├── entities/
-│   └── concepts/
-└── reference_kb/                   # frozen KB ref (XR/ml-vrd, not tracked)
+│   ├── data/immunogenicity.py          # dataset download + vocab (181 tokens)
+│   ├── models/
+│   │   ├── base_trainer.py             # shared trainer (graph/seq, early stop)
+│   │   ├── gnn_models.py               # GCN, GAT, GIN, MPNN
+│   │   ├── seq_models.py               # CNN, ResNet, LSTM
+│   │   ├── sweetnet_classifier.py      # SweetNet
+│   │   ├── glycanaa_graph.py           # GlycanAA heterogeneous graph builder
+│   │   ├── glycanaa_model.py           # GlycanAA 3-stream RGCN (torchdrug-free)
+│   │   └── glycanaa_trainer.py         # GlycanAA training wrapper
+│   └── evaluate.py                     # metrics + baseline comparison
+├── scripts/
+│   ├── run_all_models.py               # all 8 baseline models
+│   ├── run_glycanaa.py                 # GlycanAA benchmark
+│   ├── run_glycangt.py                 # GlycanGT DDP benchmark
+│   └── run_glycanml_original.py        # GlycanML torchdrug repro (CPU)
+├── GlycanAA/                           # git submodule (kasawa1234/GlycanAA)
+├── GlycanGT/                           # git submodule (matsui-lab/GlycanGT)
+├── GlycanML_ref/                       # GlycanML reference code
+└── results/
+    ├── {Model}/                        # per-model metrics, arrays, history
+    ├── plot/                           # ROC/PR/loss plots + combined bar chart
+    ├── all_models_ranking.csv
+    ├── all_models_summary.txt
+    └── glycanml_comparison.csv         # 3-way comparison table
 ```
 
 ## Reference
@@ -117,3 +152,4 @@ benchmark_gly/
   year    = {2024}
 }
 ```
+
