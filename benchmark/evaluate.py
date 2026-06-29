@@ -29,16 +29,12 @@ logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # GlycanML paper baselines (Xu et al. 2024, arXiv:2405.16206)
-# Task: glycan immunogenicity binary classification
-# Metrics: AUROC, AUPRC
 # ---------------------------------------------------------------------------
-GLYCANML_BASELINES: dict[str, dict[str, float]] = {
-    # Sequence-based models
+GLYCANML_PAPER_BASELINES: dict[str, dict[str, float]] = {
     "CNN":    {"AUROC": 0.741, "AUPRC": 0.639},
     "ResNet": {"AUROC": 0.756, "AUPRC": 0.654},
     "LSTM":   {"AUROC": 0.728, "AUPRC": 0.621},
     "BERT":   {"AUROC": 0.770, "AUPRC": 0.671},
-    # Graph-based models
     "GCN":    {"AUROC": 0.749, "AUPRC": 0.645},
     "GAT":    {"AUROC": 0.762, "AUPRC": 0.660},
     "GIN":    {"AUROC": 0.778, "AUPRC": 0.677},
@@ -46,6 +42,24 @@ GLYCANML_BASELINES: dict[str, dict[str, float]] = {
     "RGCN":   {"AUROC": 0.758, "AUPRC": 0.655},
     "CompGCN":{"AUROC": 0.752, "AUPRC": 0.649},
 }
+
+# ---------------------------------------------------------------------------
+# Our trained baselines (same dataset/splits, GPU training on H200)
+# ---------------------------------------------------------------------------
+OUR_TRAINED_BASELINES: dict[str, dict[str, float]] = {
+    "GCN":      {"AUROC": 0.9876, "AUPRC": 0.9194, "F1": 0.8000, "MCC": 0.7835},
+    "LSTM":     {"AUROC": 0.9868, "AUPRC": 0.9238, "F1": 0.8000, "MCC": 0.7680},
+    "MPNN":     {"AUROC": 0.9836, "AUPRC": 0.8770, "F1": 0.8293, "MCC": 0.8015},
+    "GIN":      {"AUROC": 0.9808, "AUPRC": 0.8655, "F1": 0.8293, "MCC": 0.8015},
+    "SweetNet": {"AUROC": 0.9792, "AUPRC": 0.8935, "F1": 0.8333, "MCC": 0.8166},
+    "CNN":      {"AUROC": 0.9764, "AUPRC": 0.8818, "F1": 0.6667, "MCC": 0.6804},
+    "GlycanAA": {"AUROC": 0.9708, "AUPRC": 0.8026, "F1": 0.5333, "MCC": 0.5226},
+    "ResNet":   {"AUROC": 0.9544, "AUPRC": 0.7994, "F1": 0.5517, "MCC": 0.5602},
+    "GAT":      {"AUROC": 0.9452, "AUPRC": 0.8507, "F1": 0.5185, "MCC": 0.5631},
+}
+
+# Default: rank against our own trained results (competitive baseline)
+GLYCANML_BASELINES = OUR_TRAINED_BASELINES
 
 
 def compute_metrics(
@@ -73,8 +87,11 @@ def rank_against_baselines(
     sorted by AUROC descending.
     """
     rows = []
+    source_label = ("our trained baselines"
+                    if GLYCANML_BASELINES is OUR_TRAINED_BASELINES
+                    else "GlycanML (paper)")
     for model, vals in GLYCANML_BASELINES.items():
-        rows.append({"Model": model, "Source": "GlycanML (paper)", **vals})
+        rows.append({"Model": model, "Source": source_label, **vals})
 
     rows.append({
         "Model":  model_label,
@@ -124,8 +141,13 @@ def _build_summary(
     rank = our_row.index[0] if len(our_row) else "?"
     total = len(ranking_df)
 
-    best_paper_auroc = ranking_df[ranking_df["Source"] == "GlycanML (paper)"]["AUROC"].max()
-    delta = metrics.get("AUROC", 0) - best_paper_auroc
+    # Compare against the best trained baseline (not paper numbers)
+    trained_rows = ranking_df[ranking_df["Source"] != "this benchmark"]
+    best_baseline_auroc = trained_rows["AUROC"].max() if len(trained_rows) else float("nan")
+    delta = metrics.get("AUROC", 0) - best_baseline_auroc
+    baseline_label = ("our trained baselines"
+                      if GLYCANML_BASELINES is OUR_TRAINED_BASELINES
+                      else "GlycanML (paper)")
 
     lines = [
         "=" * 60,
@@ -133,20 +155,20 @@ def _build_summary(
         f"Run: {run_name}",
         "=" * 60,
         "",
-        "OUR MODEL (SweetNet fine-tuned)",
+        f"MODEL: {run_name}",
         f"  AUROC  : {metrics.get('AUROC', 'N/A')}",
         f"  AUPRC  : {metrics.get('AUPRC', 'N/A')}",
         f"  F1     : {metrics.get('F1', 'N/A')}",
         f"  MCC    : {metrics.get('MCC', 'N/A')}",
         "",
-        f"RANKING vs GlycanML paper baselines: #{rank} / {total}",
-        f"  vs best paper model: {delta:+.4f} AUROC",
+        f"RANKING vs {baseline_label}: #{rank} / {total}",
+        f"  vs best baseline: {delta:+.4f} AUROC",
         "",
         "FULL RANKING",
         "-" * 60,
         ranking_df.to_string(),
         "",
         "Reference: Xu et al. 2024, arXiv:2405.16206",
-        "Dataset  : GlycanML immunogenicity (Train 1046 / Valid 131 / Test 143)",
+        "Dataset  : GlycanML immunogenicity (Train 1026 / Valid 149 / Test 145)",
     ]
     return "\n".join(lines)

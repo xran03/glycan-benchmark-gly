@@ -189,7 +189,7 @@ def evaluate_epoch(model, loader, device, is_ddp=False):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model-size",  default="small", choices=["ss","small","medium","large"])
+    parser.add_argument("--model-size",  default="large", choices=["ss","small","medium","large"])
     parser.add_argument("--epochs",      type=int,   default=100)
     parser.add_argument("--batch-size",  type=int,   default=64)
     parser.add_argument("--lr",          type=float, default=1e-4)

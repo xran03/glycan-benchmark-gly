@@ -1,9 +1,9 @@
 {
-  "model_size": "small",
+  "model_size": "large",
   "epochs": 100,
-  "best_epoch": 72,
-  "batch_size": 64,
-  "lr": 0.0001,
+  "best_epoch": 50,
+  "batch_size": 32,
+  "lr": 5e-05,
   "seed": 42,
   "note": "supervised end-to-end, no pretrained weights (HuggingFace blocked)"
 }
